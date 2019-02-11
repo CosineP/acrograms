@@ -26,7 +26,9 @@ type SearchState = (Anagram, Letters, Dictionary)
 -- | They also meet the requirements of the given acronym
 anagrams :: Dictionary -> Text -> Text -> [Text]
 anagrams dict source acronym =
-  map extractAnagram $ search dict source acronym
+  map extractAnagram $ search narrowedDict source acronym
+  where
+    narrowedDict = S.filter (\word -> any (`fitsAcronym` word) (T.unpack acronym)) dict
 
 search :: Dictionary -> Text -> Text -> [Anagram]
 search dict source acronym = expand acronym initialState
@@ -54,18 +56,22 @@ expand acronym (wordsSoFar, remaining, dict)
     -- combining the two would lead to the first letter of the acronym
     -- stripping all non-acronymous words
     possibleWords = S.filter (canSpell remaining) dict
-    usableWords = S.filter (fitsAcronym) possibleWords
+    -- THIS ONLY WORKS WHEN THE ACRONYM DOESN'T CONTAIN DUPLICATES
+    -- For my pet use case that works but TODO: check for that
+    (usableWords, newDict) = S.partition (fitsAcronym nextLetter) possibleWords
     -- As we generate new branches, we remove words for which we have
     -- already created a branch: this ensures that independent branches
     -- will not generate identical sets of words.
-    anagrams = fst $ foldl go ([], possibleWords) $ usableWords
+    anagrams = fst $ foldl go ([], newDict) $ usableWords
     go (anagrams, d) word =
       (anagrams ++ expand acronym (MS.insert word wordsSoFar,
         remaining `MS.difference` wordLetters word, d),
        S.delete word d)
     canSpell letters word = wordLetters word `MS.isSubsetOf` letters
-    fitsAcronym word = (head $ T.unpack word) == nextLetter
     nextLetter = T.unpack acronym !! length wordsSoFar
+
+fitsAcronym :: Char -> Text -> Bool
+fitsAcronym letter word = (head $ T.unpack word) == letter
 
 wordLetters :: Text -> Letters
 wordLetters = MS.fromList . filter isAlpha . T.unpack . T.toLower
