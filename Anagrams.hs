@@ -2,14 +2,10 @@
 module Anagrams(anagrams, readDict) where
 
 import           Control.Applicative ((<$>))
-import           Data.Char           (isAlpha)
-import           Data.Maybe          (catMaybes)
 import           Data.MultiSet       (MultiSet)
 import qualified Data.MultiSet       as MS
 import           Data.Set            (Set)
 import qualified Data.Set            as S
-import           Data.Tree           (Tree)
-import qualified Data.Tree           as Tr
 
 type AWord = String
 type Dictionary = Set AWord
@@ -43,7 +39,7 @@ expand acronym (wordsSoFar, remaining, dict)
   -- Don't think that'd help performance much but it could
   | length wordsSoFar == length acronym = []
   -- We have work to do my friends
-  | otherwise = anagrams
+  | otherwise = allAnagrams
   where
     -- The distinction from possible and usable is this:
     -- possibleWords might be used down the line
@@ -57,9 +53,9 @@ expand acronym (wordsSoFar, remaining, dict)
     -- As we generate new branches, we remove words for which we have
     -- already created a branch: this ensures that independent branches
     -- will not generate identical sets of words.
-    anagrams = fst $ foldl go ([], newDict) $ usableWords
-    go (anagrams, d) word =
-      (anagrams ++ expand acronym (MS.insert word wordsSoFar,
+    allAnagrams = fst $ foldl go ([], newDict) $ usableWords
+    go (anagramsSoFar, d) word =
+      (anagramsSoFar ++ expand acronym (MS.insert word wordsSoFar,
         remaining `MS.difference` wordLetters word, d),
        S.delete word d)
     canSpell letters word = wordLetters word `MS.isSubsetOf` letters
@@ -79,5 +75,6 @@ readDict = (S.filter goodWord . S.fromList . lines) <$> readFile dictionary
         --goodWord "O" = True -- bill wouldn't use this one
         goodWord w   = length w > 1
         -- TODO: if we use this dictionary again we have to lowercase it
+        -- AND probably(?) remove apostrophes
         --dictionary = "/usr/share/dict/words"
         dictionary = "10000.txt"
