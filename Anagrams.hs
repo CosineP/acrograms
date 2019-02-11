@@ -8,11 +8,10 @@ import           Data.MultiSet       (MultiSet)
 import qualified Data.MultiSet       as MS
 import           Data.Set            (Set)
 import qualified Data.Set            as S
-import qualified Data.ByteString.Char8 as BS
 import           Data.Tree           (Tree)
 import qualified Data.Tree           as Tr
 
-type AWord = BS.ByteString
+type AWord = String
 type Dictionary = Set AWord
 
 type Anagram = MultiSet AWord
@@ -26,23 +25,23 @@ anagrams :: Dictionary -> AWord -> AWord -> [AWord]
 anagrams dict source acronym =
   map extractAnagram $ search narrowedDict source acronym
   where
-    narrowedDict = S.filter (\word -> BS.any (`fitsAcronym` word) acronym) dict
+    narrowedDict = S.filter (\word -> any (`fitsAcronym` word) acronym) dict
 
 search :: Dictionary -> AWord -> AWord -> [Anagram]
 search dict source acronym = expand acronym initialState
   where initialState = (MS.empty, wordLetters source, dict)
 
 extractAnagram :: Anagram -> AWord
-extractAnagram = BS.unwords . MS.toList
+extractAnagram = unwords . MS.toList
 
 expand :: AWord -> SearchState -> [Anagram]
 expand acronym (wordsSoFar, remaining, dict)
   -- We have just done the final word
-  | length wordsSoFar == BS.length acronym && MS.null remaining = [wordsSoFar]
+  | length wordsSoFar == length acronym && MS.null remaining = [wordsSoFar]
   -- Our final word didn't use up all our letters
   -- TODO: we could remove one function call by filtering these from possible words
   -- Don't think that'd help performance much but it could
-  | length wordsSoFar == BS.length acronym = []
+  | length wordsSoFar == length acronym = []
   -- We have work to do my friends
   | otherwise = anagrams
   where
@@ -64,21 +63,21 @@ expand acronym (wordsSoFar, remaining, dict)
         remaining `MS.difference` wordLetters word, d),
        S.delete word d)
     canSpell letters word = wordLetters word `MS.isSubsetOf` letters
-    nextLetter = BS.index acronym $ length wordsSoFar
+    nextLetter = acronym !! length wordsSoFar
 
 fitsAcronym :: Char -> AWord -> Bool
-fitsAcronym letter word = (BS.head word) == letter
+fitsAcronym letter word = (head word) == letter
 
 wordLetters :: AWord -> Letters
-wordLetters = MS.fromList . BS.unpack
+wordLetters = MS.fromList
 
 
 readDict :: IO Dictionary
-readDict = (S.filter goodWord . S.fromList . BS.lines) <$> BS.readFile dictionary
+readDict = (S.filter goodWord . S.fromList . lines) <$> readFile dictionary
   where goodWord "a" = True
         goodWord "i" = True
         --goodWord "O" = True -- bill wouldn't use this one
-        goodWord w   = BS.length w > 1
+        goodWord w   = length w > 1
         -- TODO: if we use this dictionary again we have to lowercase it
         --dictionary = "/usr/share/dict/words"
         dictionary = "10000.txt"
