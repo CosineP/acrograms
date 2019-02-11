@@ -40,6 +40,7 @@ expand acronym (wordsSoFar, remaining, dict)
   -- TODO: we could remove one function call by filtering these from possible words
   -- Don't think that'd help performance much but it could
   | 0 == length acronym = []
+  -- Do we at least have one of each letter in the acronym?
   | not canAcronym = []
   -- We have work to do my friends
   | otherwise = allAnagrams
@@ -75,9 +76,7 @@ readDict :: IO Dictionary
 readDict = (S.filter goodWord . S.fromList . lines) <$> readFile dictionary
   where goodWord "a" = True
         goodWord "i" = True
-        --goodWord "O" = True -- bill wouldn't use this one
+        --goodWord "o" = True -- bill wouldn't use this one
         goodWord w   = length w > 1
-        -- TODO: if we use this dictionary again we have to lowercase it
-        -- AND probably(?) remove apostrophes
         --dictionary = "/usr/share/dict/words"
         dictionary = "10000.txt"

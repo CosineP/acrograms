@@ -18,7 +18,7 @@ cabal-version:       >=1.10
 
 executable anagrams
   main-is:             Main.hs
-  ghc-options:         -O2 -Wall
+  ghc-options:         -O2 -Wall -threaded
   other-modules:       Anagrams
   -- other-extensions:
   build-depends:       base
