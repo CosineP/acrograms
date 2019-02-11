@@ -1,11 +1,11 @@
 module Main where
 
 import           Anagrams
-import qualified Data.Text          as T
+import qualified Data.ByteString.Char8 as BS
 import           System.Environment (getArgs)
 
 main :: IO ()
 main = do
   dict <- readDict
   [input] <- getArgs
-  mapM_ (putStrLn . T.unpack) $ anagrams dict (T.pack input) (T.pack "wfaoie")
+  mapM_ (putStrLn . BS.unpack) $ anagrams dict (BS.pack input) (BS.pack "wfaoie")

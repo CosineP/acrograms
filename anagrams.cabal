@@ -24,6 +24,6 @@ executable anagrams
   build-depends:       base
                      , containers >= 0.5.5.1
                      , multiset >= 0.2.2
-                     , text >= 1.1.1.3
+                     , bytestring
   -- hs-source-dirs:
   default-language:    Haskell2010

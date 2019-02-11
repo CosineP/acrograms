@@ -8,13 +8,11 @@ import           Data.MultiSet       (MultiSet)
 import qualified Data.MultiSet       as MS
 import           Data.Set            (Set)
 import qualified Data.Set            as S
-import           Data.Text           (Text)
-import qualified Data.Text           as T
-import qualified Data.Text.IO        as TIO
+import qualified Data.ByteString.Char8 as BS
 import           Data.Tree           (Tree)
 import qualified Data.Tree           as Tr
 
-type AWord = Text
+type AWord = BS.ByteString
 type Dictionary = Set AWord
 
 type Anagram = MultiSet AWord
@@ -24,27 +22,27 @@ type SearchState = (Anagram, Letters, Dictionary)
 
 -- | Generate anagrams of the given word using the dictionary supplied.
 -- | They also meet the requirements of the given acronym
-anagrams :: Dictionary -> Text -> Text -> [Text]
+anagrams :: Dictionary -> AWord -> AWord -> [AWord]
 anagrams dict source acronym =
   map extractAnagram $ search narrowedDict source acronym
   where
-    narrowedDict = S.filter (\word -> any (`fitsAcronym` word) (T.unpack acronym)) dict
+    narrowedDict = S.filter (\word -> BS.any (`fitsAcronym` word) acronym) dict
 
-search :: Dictionary -> Text -> Text -> [Anagram]
+search :: Dictionary -> AWord -> AWord -> [Anagram]
 search dict source acronym = expand acronym initialState
   where initialState = (MS.empty, wordLetters source, dict)
 
-extractAnagram :: Anagram -> Text
-extractAnagram = T.unwords . MS.toList
+extractAnagram :: Anagram -> AWord
+extractAnagram = BS.unwords . MS.toList
 
-expand :: Text -> SearchState -> [Anagram]
+expand :: AWord -> SearchState -> [Anagram]
 expand acronym (wordsSoFar, remaining, dict)
   -- We have just done the final word
-  | length wordsSoFar == T.length acronym && MS.null remaining = [wordsSoFar]
+  | length wordsSoFar == BS.length acronym && MS.null remaining = [wordsSoFar]
   -- Our final word didn't use up all our letters
   -- TODO: we could remove one function call by filtering these from possible words
   -- Don't think that'd help performance much but it could
-  | length wordsSoFar == T.length acronym = []
+  | length wordsSoFar == BS.length acronym = []
   -- We have work to do my friends
   | otherwise = anagrams
   where
@@ -66,20 +64,21 @@ expand acronym (wordsSoFar, remaining, dict)
         remaining `MS.difference` wordLetters word, d),
        S.delete word d)
     canSpell letters word = wordLetters word `MS.isSubsetOf` letters
-    nextLetter = T.unpack acronym !! length wordsSoFar
+    nextLetter = BS.index acronym $ length wordsSoFar
 
-fitsAcronym :: Char -> Text -> Bool
-fitsAcronym letter word = (head $ T.unpack word) == letter
+fitsAcronym :: Char -> AWord -> Bool
+fitsAcronym letter word = (BS.head word) == letter
 
-wordLetters :: Text -> Letters
-wordLetters = MS.fromList . T.unpack
+wordLetters :: AWord -> Letters
+wordLetters = MS.fromList . BS.unpack
 
 
 readDict :: IO Dictionary
-readDict = (S.filter goodWord . (S.map T.toLower) . S.fromList . T.lines) <$> TIO.readFile dictionary
+readDict = (S.filter goodWord . S.fromList . BS.lines) <$> BS.readFile dictionary
   where goodWord "a" = True
         goodWord "i" = True
         --goodWord "O" = True -- bill wouldn't use this one
-        goodWord w   = T.length w > 1
+        goodWord w   = BS.length w > 1
+        -- TODO: if we use this dictionary again we have to lowercase it
         --dictionary = "/usr/share/dict/words"
         dictionary = "10000.txt"
