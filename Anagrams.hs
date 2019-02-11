@@ -74,12 +74,14 @@ fitsAcronym :: Char -> Text -> Bool
 fitsAcronym letter word = (head $ T.unpack word) == letter
 
 wordLetters :: Text -> Letters
-wordLetters = MS.fromList . filter isAlpha . T.unpack . T.toLower
+wordLetters = MS.fromList . T.unpack
 
 
 readDict :: IO Dictionary
-readDict = (S.filter goodWord . S.fromList . T.lines) <$> TIO.readFile "/usr/share/dict/words"
-  where goodWord "A" = True
-        goodWord "I" = True
+readDict = (S.filter goodWord . (S.map T.toLower) . S.fromList . T.lines) <$> TIO.readFile dictionary
+  where goodWord "a" = True
+        goodWord "i" = True
         --goodWord "O" = True -- bill wouldn't use this one
         goodWord w   = T.length w > 1
+        --dictionary = "/usr/share/dict/words"
+        dictionary = "10000.txt"
