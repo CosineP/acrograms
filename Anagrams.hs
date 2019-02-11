@@ -39,8 +39,6 @@ extractAnagram = T.unwords . MS.toList
 
 expand :: Text -> SearchState -> [Anagram]
 expand acronym (wordsSoFar, remaining, dict)
-  -- We cannot possibly construct an acronym long enough with this many letters
-  | length wordsSoFar + MS.size remaining < T.length acronym = []
   -- We have just done the final word
   | length wordsSoFar == T.length acronym && MS.null remaining = [wordsSoFar]
   -- Our final word didn't use up all our letters
