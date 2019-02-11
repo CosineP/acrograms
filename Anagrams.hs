@@ -13,7 +13,6 @@ import qualified Data.Text           as T
 import qualified Data.Text.IO        as TIO
 import           Data.Tree           (Tree)
 import qualified Data.Tree           as Tr
-import Debug.Trace (trace)
 
 type AWord = Text
 type Dictionary = Set AWord
@@ -24,27 +23,31 @@ type Letters = MultiSet Char
 type SearchState = (Anagram, Letters, Dictionary)
 
 -- | Generate anagrams of the given word using the dictionary supplied.
--- The anagrams with the fewest words are returned first, which can lead to
--- high memory usage.
+-- | They also meet the requirements of the given acronym
 anagrams :: Dictionary -> Text -> Text -> [Text]
 anagrams dict source acronym =
-  map extractAnagram $ catMaybes $ breadthFirstNodes $ search dict source acronym
-  where breadthFirstNodes = concat . Tr.levels
+  map extractAnagram $ search dict source acronym
 
-search :: Dictionary -> Text -> Text -> Tree (Maybe Anagram)
-search dict source acronym = Tr.unfoldTree (expand acronym) initialState
+search :: Dictionary -> Text -> Text -> [Anagram]
+search dict source acronym = expand acronym initialState
   where initialState = (MS.empty, wordLetters source, dict)
 
 extractAnagram :: Anagram -> Text
 extractAnagram = T.unwords . MS.toList
 
-expand :: Text -> SearchState -> (Maybe Anagram, [SearchState])
+expand :: Text -> SearchState -> [Anagram]
 expand acronym (wordsSoFar, remaining, dict)
   -- We cannot possibly construct an acronym long enough with this many letters
-  | length wordsSoFar + MS.size remaining < T.length acronym = (Nothing, [])
-  | otherwise = (completeAnagram, nextStates)
+  | length wordsSoFar + MS.size remaining < T.length acronym = []
+  -- We have just done the final word
+  | length wordsSoFar == T.length acronym && MS.null remaining = [wordsSoFar]
+  -- Our final word didn't use up all our letters
+  -- TODO: we could remove one function call by filtering these from possible words
+  -- Don't think that'd help performance much but it could
+  | length wordsSoFar == T.length acronym = []
+  -- We have work to do my friends
+  | otherwise = anagrams
   where
-    completeAnagram = if MS.null remaining then Just wordsSoFar else Nothing
     -- The distinction from possible and usable is this:
     -- possibleWords might be used down the line
     -- usableWords can be used in this spot in the acronym
@@ -55,14 +58,13 @@ expand acronym (wordsSoFar, remaining, dict)
     -- As we generate new branches, we remove words for which we have
     -- already created a branch: this ensures that independent branches
     -- will not generate identical sets of words.
-    nextStates = fst $ foldl go ([], possibleWords) $ usableWords
-    go (states, d) word =
-      ((MS.insert word wordsSoFar,
-        remaining `MS.difference` wordLetters word, d):states,
+    anagrams = fst $ foldl go ([], possibleWords) $ usableWords
+    go (anagrams, d) word =
+      (anagrams ++ expand acronym (MS.insert word wordsSoFar,
+        remaining `MS.difference` wordLetters word, d),
        S.delete word d)
     canSpell letters word = wordLetters word `MS.isSubsetOf` letters
     fitsAcronym word = (head $ T.unpack word) == nextLetter
-    -- TODO: add guard for too many words rather than panic
     nextLetter = T.unpack acronym !! length wordsSoFar
 
 wordLetters :: Text -> Letters
@@ -73,5 +75,5 @@ readDict :: IO Dictionary
 readDict = (S.filter goodWord . S.fromList . T.lines) <$> TIO.readFile "/usr/share/dict/words"
   where goodWord "A" = True
         goodWord "I" = True
-        goodWord "O" = True
+        --goodWord "O" = True -- bill wouldn't use this one
         goodWord w   = T.length w > 1
