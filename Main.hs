@@ -8,4 +8,4 @@ main :: IO ()
 main = do
   dict <- readDict
   [input] <- getArgs
-  mapM_ (putStrLn . T.unpack) $ anagrams dict (T.pack input)
+  mapM_ (putStrLn . T.unpack) $ anagrams dict (T.pack input) (T.pack "twoi")
