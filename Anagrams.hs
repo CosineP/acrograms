@@ -35,11 +35,12 @@ extractAnagram = unwords . MS.toList
 expand :: AWord -> SearchState -> [Anagram]
 expand acronym (wordsSoFar, remaining, dict)
   -- We have just done the final word
-  | length wordsSoFar == length acronym && MS.null remaining = [wordsSoFar]
+  | 0 == length acronym && MS.null remaining = [wordsSoFar]
   -- Our final word didn't use up all our letters
   -- TODO: we could remove one function call by filtering these from possible words
   -- Don't think that'd help performance much but it could
-  | length wordsSoFar == length acronym = []
+  | 0 == length acronym = []
+  | not canAcronym = []
   -- We have work to do my friends
   | otherwise = allAnagrams
   where
@@ -57,18 +58,18 @@ expand acronym (wordsSoFar, remaining, dict)
     -- will not generate identical sets of words.
     allAnagrams = fst $ foldl go ([], newDict) $ usableWords
     go (anagramsSoFar, d) word =
-      (anagramsSoFar ++ expand acronym (MS.insert word wordsSoFar,
+      (anagramsSoFar ++ expand (tail acronym) (MS.insert word wordsSoFar,
         remaining `MS.difference` wordLetters word, d),
        S.delete word d)
     canSpell letters word = wordLetters word `MS.isSubsetOf` letters
-    nextLetter = acronym !! length wordsSoFar
+    canAcronym = canSpell remaining acronym
+    nextLetter = head acronym
 
 fitsAcronym :: Char -> AWord -> Bool
 fitsAcronym letter word = (head word) == letter
 
 wordLetters :: AWord -> Letters
 wordLetters = MS.fromList
-
 
 readDict :: IO Dictionary
 readDict = (S.filter goodWord . S.fromList . lines) <$> readFile dictionary
