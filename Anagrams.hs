@@ -2,15 +2,14 @@
 module Anagrams(anagrams, readDict) where
 
 import           Control.Applicative ((<$>))
+import           Data.List           (partition)
 import           Data.Char           (isAlpha, toLower)
-import           Data.Set            (Set)
-import qualified Data.Set            as S
 import           Data.MultiSet       (MultiSet)
 import qualified Data.MultiSet       as MS
 
 type AWord = String
 type DictEntry = (AWord, Letters)
-type Dictionary = Set DictEntry
+type Dictionary = [DictEntry]
 
 type Anagram = MultiSet AWord
 type Letters = MultiSet Char
@@ -23,7 +22,7 @@ anagrams :: Dictionary -> AWord -> AWord -> [AWord]
 anagrams dict source acronym =
   map extractAnagram $ search narrowedDict sourceRefined acronym
   where
-    narrowedDict = S.filter (\word -> any (`fitsAcronym` word) acronym) dict
+    narrowedDict = filter (\word -> any (`fitsAcronym` word) acronym) dict
     sourceRefined = filter isAlpha . map toLower $ source
 
 search :: Dictionary -> AWord -> AWord -> [Anagram]
@@ -51,13 +50,13 @@ expand acronym (wordsSoFar, remaining, dict)
     -- usableWords can be used in this spot in the acronym
     -- combining the two would lead to the first letter of the acronym
     -- stripping all non-acronymous words
-    possibleWords = S.filter (canSpell remaining) dict
+    possibleWords = filter (canSpell remaining) dict
     -- THIS ONLY WORKS WHEN THE ACRONYM DOESN'T CONTAIN DUPLICATES
     -- For my pet use case that works but TODO: check for that
-    (usableWords, newDict) = S.partition (fitsAcronym nextLetter) possibleWords
+    (usableWords, newDict) = partition (fitsAcronym nextLetter) possibleWords
     -- We used to remove words from dictionary that we've used
     -- The acronym constraint makes that unnecessary
-    allAnagrams = S.foldl go [] usableWords
+    allAnagrams = foldl go [] usableWords
     --allAnagrams = foldl go [] (take 20 usableWords) -- Duplicate of above for profiling
     go anagramsSoFar (word, set) =
       anagramsSoFar ++ expand (tail acronym) (MS.insert word wordsSoFar,
@@ -80,5 +79,5 @@ readDict = toDict . (filter goodWord . lines) <$> readFile dictionary
         goodWord w   = length w > 1
         --dictionary = "/usr/share/dict/words"
         dictionary = "10000.txt"
-        toDict = S.fromList . map toDictEntry
+        toDict = map toDictEntry
         toDictEntry word = (word, wordLetters word)
