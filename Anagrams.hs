@@ -2,6 +2,7 @@
 module Anagrams(anagrams, readDict) where
 
 import           Control.Applicative ((<$>))
+import           Data.Char           (isAlpha, toLower)
 import           Data.MultiSet       (MultiSet)
 import qualified Data.MultiSet       as MS
 import           Data.Set            (Set)
@@ -19,9 +20,10 @@ type SearchState = (Anagram, Letters, Dictionary)
 -- | They also meet the requirements of the given acronym
 anagrams :: Dictionary -> AWord -> AWord -> [AWord]
 anagrams dict source acronym =
-  map extractAnagram $ search narrowedDict source acronym
+  map extractAnagram $ search narrowedDict sourceRefined acronym
   where
     narrowedDict = S.filter (\word -> any (`fitsAcronym` word) acronym) dict
+    sourceRefined = filter isAlpha . map toLower $ source
 
 search :: Dictionary -> AWord -> AWord -> [Anagram]
 search dict source acronym = expand acronym initialState
