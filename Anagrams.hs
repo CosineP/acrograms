@@ -2,14 +2,13 @@
 module Anagrams(anagrams, readDict) where
 
 import           Control.Applicative ((<$>))
+import           Data.List           (partition)
 import           Data.Char           (isAlpha, toLower)
 import           Data.MultiSet       (MultiSet)
 import qualified Data.MultiSet       as MS
-import           Data.Set            (Set)
-import qualified Data.Set            as S
 
 type AWord = String
-type Dictionary = Set AWord
+type Dictionary = [AWord]
 
 type Anagram = MultiSet AWord
 type Letters = MultiSet Char
@@ -22,7 +21,7 @@ anagrams :: Dictionary -> AWord -> AWord -> [AWord]
 anagrams dict source acronym =
   map extractAnagram $ search narrowedDict sourceRefined acronym
   where
-    narrowedDict = S.filter (\word -> any (`fitsAcronym` word) acronym) dict
+    narrowedDict = filter (\word -> any (`fitsAcronym` word) acronym) dict
     sourceRefined = filter isAlpha . map toLower $ source
 
 search :: Dictionary -> AWord -> AWord -> [Anagram]
@@ -50,18 +49,17 @@ expand acronym (wordsSoFar, remaining, dict)
     -- usableWords can be used in this spot in the acronym
     -- combining the two would lead to the first letter of the acronym
     -- stripping all non-acronymous words
-    possibleWords = S.filter (canSpell remaining) dict
+    possibleWords = filter (canSpell remaining) dict
     -- THIS ONLY WORKS WHEN THE ACRONYM DOESN'T CONTAIN DUPLICATES
     -- For my pet use case that works but TODO: check for that
-    (usableWords, newDict) = S.partition (fitsAcronym nextLetter) possibleWords
-    -- As we generate new branches, we remove words for which we have
-    -- already created a branch: this ensures that independent branches
-    -- will not generate identical sets of words.
-    allAnagrams = fst $ foldl go ([], newDict) $ usableWords
-    go (anagramsSoFar, d) word =
-      (anagramsSoFar ++ expand (tail acronym) (MS.insert word wordsSoFar,
-        remaining `MS.difference` wordLetters word, d),
-       S.delete word d)
+    (usableWords, newDict) = partition (fitsAcronym nextLetter) possibleWords
+    -- We used to remove words from dictionary that we've used
+    -- The acronym constraint makes that unnecessary
+    allAnagrams = foldl go [] usableWords
+    --allAnagrams = foldl go [] (take 20 usableWords) -- Duplicate of above for profiling
+    go anagramsSoFar word =
+      anagramsSoFar ++ expand (tail acronym) (MS.insert word wordsSoFar,
+        remaining `MS.difference` wordLetters word, newDict)
     canSpell letters word = wordLetters word `MS.isSubsetOf` letters
     canAcronym = canSpell remaining acronym
     nextLetter = head acronym
@@ -73,7 +71,7 @@ wordLetters :: AWord -> Letters
 wordLetters = MS.fromList
 
 readDict :: IO Dictionary
-readDict = (S.filter goodWord . S.fromList . lines) <$> readFile dictionary
+readDict = (filter goodWord . lines) <$> readFile dictionary
   where goodWord "a" = True
         goodWord "i" = True
         --goodWord "o" = True -- bill wouldn't use this one
