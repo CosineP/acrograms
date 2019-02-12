@@ -94,7 +94,9 @@ readDict = toDict . (filter goodWord . lines) <$> readFile dictionary
         --certain = ["of", "well", "interim"]
         -- Use comments here to select a dictionary to use
         --dictionary = "/usr/share/dict/words"
-        dictionary = "10000.txt"
+        --dictionary = "10000.txt"
+        -- In this dictionary I've removed words we've already computed
+        dictionary = "unknown.txt"
         toDict = map toDictEntry
         toDictEntry word = (word, wordLetters word)
 
