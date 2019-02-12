@@ -6,6 +6,7 @@ import           Data.List           (partition)
 import           Data.Char           (isAlpha, toLower)
 import           Data.MultiSet       (MultiSet)
 import qualified Data.MultiSet       as MS
+import           Debug.Trace         (trace, traceShow)
 
 type AWord = String
 type DictEntry = (AWord, Letters)
@@ -42,6 +43,8 @@ expand acronym (wordsSoFar, remaining, dict)
   | 0 == length acronym = []
   -- Do we at least have one of each letter in the acronym?
   | not canAcronym = []
+  -- Just for debug tracing
+  | 3 <= length acronym = trace (show wordsSoFar ++ (show $ length dict)) allAnagrams
   -- We have work to do my friends
   | otherwise = allAnagrams
   where
