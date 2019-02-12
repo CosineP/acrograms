@@ -40,7 +40,7 @@ extractAnagram :: Anagram -> AWord
 extractAnagram = unwords . MS.toList
 
 expand :: AWord -> SearchState -> [Anagram]
-expand acronym (wordsSoFar, remaining, dict)
+expand acronym state@(wordsSoFar, remaining, dict)
   -- We have just done the final word
   | 0 == length acronym && MS.null remaining = [wordsSoFar]
   -- Our final word didn't use up all our letters
@@ -49,6 +49,8 @@ expand acronym (wordsSoFar, remaining, dict)
   | 0 == length acronym = []
   -- Do we at least have one of each letter in the acronym?
   | not canAcronym = []
+  -- At the leaves the function can be considerably optimised
+  | 1 == length acronym = leaf state
   -- Just for debug tracing
   | 3 <= length acronym = trace (show wordsSoFar ++ (show $ length $ head dict)) allAnagrams
   -- We have work to do my friends
@@ -72,6 +74,13 @@ expand acronym (wordsSoFar, remaining, dict)
         remaining `MS.difference` set, newDict)
     canSpell letters (_, entryLetters) = entryLetters `MS.isSubsetOf` letters
     canAcronym = wordLetters acronym `MS.isSubsetOf` remaining
+
+leaf :: SearchState -> [Anagram]
+leaf (wordsSoFar, remaining, dict) = foldl go [] possibleWords
+  where
+    go acc (word, _) = (MS.insert word wordsSoFar):acc
+    possibleWords = filter canSpell $ head dict
+    canSpell (_, wordSet) = wordSet == remaining
 
 fitsAcronym :: Char -> DictEntry -> Bool
 fitsAcronym letter (word, _) = head word == letter
