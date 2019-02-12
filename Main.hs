@@ -7,4 +7,5 @@ main :: IO ()
 main = do
   dict <- readDict
   [input] <- getArgs
-  mapM_ putStrLn $ anagrams dict input "wfaoie"
+  mapM_ putStrLn $ anagrams dict input "owifea"
+
