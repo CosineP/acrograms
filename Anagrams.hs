@@ -17,6 +17,10 @@ type Letters = MultiSet Char
 
 type SearchState = (Anagram, Letters, Dictionary)
 
+-- Convenient for debugging
+traceThis :: Show a => a -> a
+traceThis thing = traceShow thing thing
+
 -- | Generate anagrams of the given word using the dictionary supplied.
 -- | They also meet the requirements of the given acronym
 anagrams :: Dictionary -> AWord -> AWord -> [AWord]
@@ -76,27 +80,28 @@ wordLetters = MS.fromList
 
 readDict :: IO Dictionary
 readDict = toDict . (filter goodWord . lines) <$> readFile dictionary
-  where goodWord (c:rest)
-          -- Whether a word is in "certain"
-          | (c:rest) `elem` certain = True
-          | any (\x -> head x == c) certain = False
-          -- a and i but no other one-letter words
-          | (c:rest) == "a" = True
-          | (c:rest) == "i" = True
-          | length rest > 0 = True
-          | otherwise = False
-        goodWord [] = False
-        -- Bill Wurtz told us it contains "of", meaning the o IS of
-        -- TODO: in general case, remove this
-        certain = ["of"]
-        -- Adding a few certains of early words can make a fast but
-        -- realistic profile case
-        --certain = ["of", "well", "interim"]
-        -- Use comments here to select a dictionary to use
-        --dictionary = "/usr/share/dict/words"
-        --dictionary = "10000.txt"
-        -- In this dictionary I've removed words we've already computed
-        dictionary = "unknown.txt"
-        toDict = map toDictEntry
-        toDictEntry word = (word, wordLetters word)
+  where
+    goodWord (c:rest)
+      | (c:rest) `elem` certain = True
+      -- Whether a word is in "certain"
+      | any (\x -> head x == c) certain = False
+      -- a and i but no other one-letter words
+      | (c:rest) == "a" = True
+      | (c:rest) == "i" = True
+      | length rest > 0 = True
+      | otherwise = False
+    goodWord [] = False
+    -- Bill Wurtz told us it contains "of", meaning the o IS of
+    -- TODO: in general case, remove this
+    --certain = ["of"]
+    -- Adding a few certains of early words can make a fast but
+    -- realistic profile case
+    certain = ["of", "well", "into"]
+    -- Use comments here to select a dictionary to use
+    --dictionary = "/usr/share/dict/words"
+    --dictionary = "10000.txt"
+    -- In this dictionary I've removed words we've already computed
+    dictionary = "unknown.txt"
+    toDict = map toDictEntry
+    toDictEntry word = (word, wordLetters word)
 
