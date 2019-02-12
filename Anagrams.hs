@@ -2,15 +2,17 @@
 module Anagrams(anagrams, readDict) where
 
 import           Control.Applicative ((<$>))
-import           Data.List           (partition)
 import           Data.Char           (isAlpha, toLower)
 import           Data.MultiSet       (MultiSet)
 import qualified Data.MultiSet       as MS
+import           GHC.Exts            (groupWith)
+import           Data.List           (elemIndex, insertBy)
 import           Debug.Trace         (trace, traceShow)
 
 type AWord = String
 type DictEntry = (AWord, Letters)
-type Dictionary = [DictEntry]
+type DictLetter = [DictEntry]
+type Dictionary = [DictLetter]
 
 type Anagram = MultiSet AWord
 type Letters = MultiSet Char
@@ -19,12 +21,12 @@ type SearchState = (Anagram, Letters, Dictionary)
 
 -- | Generate anagrams of the given word using the dictionary supplied.
 -- | They also meet the requirements of the given acronym
-anagrams :: Dictionary -> AWord -> AWord -> [AWord]
+anagrams :: DictLetter -> AWord -> AWord -> [AWord]
 anagrams dict source acronym =
-  map extractAnagram $ search narrowedDict sourceRefined acronym
+  map extractAnagram $ search dictRefined sourceRefined acronym
   where
-    narrowedDict = filter (\word -> any (`fitsAcronym` word) acronym) dict
     sourceRefined = filter isAlpha . map toLower $ source
+    dictRefined = splitDict acronym dict
 
 search :: Dictionary -> AWord -> AWord -> [Anagram]
 search dict source acronym = expand acronym initialState
@@ -44,7 +46,7 @@ expand acronym (wordsSoFar, remaining, dict)
   -- Do we at least have one of each letter in the acronym?
   | not canAcronym = []
   -- Just for debug tracing
-  | 3 <= length acronym = trace (show wordsSoFar ++ (show $ length dict)) allAnagrams
+  | 3 <= length acronym = trace (show wordsSoFar ++ (show $ length $ head dict)) allAnagrams
   -- We have work to do my friends
   | otherwise = allAnagrams
   where
@@ -53,10 +55,10 @@ expand acronym (wordsSoFar, remaining, dict)
     -- usableWords can be used in this spot in the acronym
     -- combining the two would lead to the first letter of the acronym
     -- stripping all non-acronymous words
-    possibleWords = filter (canSpell remaining) dict
+    possibleWords = map (filter (canSpell remaining)) dict
     -- THIS ONLY WORKS WHEN THE ACRONYM DOESN'T CONTAIN DUPLICATES
     -- For my pet use case that works but TODO: check for that
-    (usableWords, newDict) = partition (fitsAcronym nextLetter) possibleWords
+    usableWords:newDict = possibleWords
     -- We used to remove words from dictionary that we've used
     -- The acronym constraint makes that unnecessary
     allAnagrams = foldl go [] usableWords
@@ -66,7 +68,6 @@ expand acronym (wordsSoFar, remaining, dict)
         remaining `MS.difference` set, newDict)
     canSpell letters (_, entryLetters) = entryLetters `MS.isSubsetOf` letters
     canAcronym = wordLetters acronym `MS.isSubsetOf` remaining
-    nextLetter = head acronym
 
 fitsAcronym :: Char -> DictEntry -> Bool
 fitsAcronym letter (word, _) = head word == letter
@@ -74,7 +75,7 @@ fitsAcronym letter (word, _) = head word == letter
 wordLetters :: AWord -> Letters
 wordLetters = MS.fromList
 
-readDict :: IO Dictionary
+readDict :: IO DictLetter
 readDict = toDict . (filter goodWord . lines) <$> readFile dictionary
   where goodWord (c:rest)
           -- Whether a word is in "certain"
@@ -99,4 +100,21 @@ readDict = toDict . (filter goodWord . lines) <$> readFile dictionary
         dictionary = "unknown.txt"
         toDict = map toDictEntry
         toDictEntry word = (word, wordLetters word)
+
+splitDict :: String -> DictLetter -> Dictionary
+splitDict acronym partial = ordered
+  where
+    narrow = filter (\word -> any (`fitsAcronym` word) acronym) partial
+    project :: DictEntry -> Char
+    project = head . fst
+    grouped :: Dictionary
+    grouped = groupWith project narrow
+    ordered :: Dictionary
+    ordered = foldl orderFunc [] grouped
+    orderFunc :: Dictionary -> DictLetter -> Dictionary
+    orderFunc acc group = insertBy acronymOrder group acc
+    acronymOrder :: DictLetter -> DictLetter -> Ordering
+    acronymOrder (((letterA:_), _):_) (((letterB:_), _):_) =
+      compare (elemIndex letterA acronym) (elemIndex letterB acronym)
+    acronymOrder _ _ = EQ
 
