@@ -103,10 +103,10 @@ readDict = toDict . (filter goodWord . lines) <$> readFile dictionary
     goodWord [] = False
     -- Bill Wurtz told us it contains "of", meaning the o IS of
     -- TODO: in general case, remove this
-    --certain = ["of"]
+    certain = ["of"]
     -- Adding a few certains of early words can make a fast but
     -- realistic profile case
-    certain = ["of", "well", "into", "intake"]
+    --certain = ["of", "whore", "into", "intake"]
     -- Use comments here to select a dictionary to use
     --dictionary = "/usr/share/dict/words"
     --dictionary = "10000.txt"
