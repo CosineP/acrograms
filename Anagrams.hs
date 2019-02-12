@@ -76,11 +76,25 @@ wordLetters = MS.fromList
 
 readDict :: IO Dictionary
 readDict = toDict . (filter goodWord . lines) <$> readFile dictionary
-  where goodWord "a" = True
-        goodWord "i" = True
-        --goodWord "o" = True -- bill wouldn't use this one
-        goodWord w   = length w > 1
+  where goodWord (c:rest)
+          -- Whether a word is in "certain"
+          | (c:rest) `elem` certain = True
+          | any (\x -> head x == c) certain = False
+          -- a and i but no other one-letter words
+          | (c:rest) == "a" = True
+          | (c:rest) == "i" = True
+          | length rest > 0 = True
+          | otherwise = False
+        goodWord [] = False
+        -- Bill Wurtz told us it contains "of", meaning the o IS of
+        -- TODO: in general case, remove this
+        certain = ["of"]
+        -- Adding a few certains of early words can make a fast but
+        -- realistic profile case
+        --certain = ["of", "well", "interim"]
+        -- Use comments here to select a dictionary to use
         --dictionary = "/usr/share/dict/words"
         dictionary = "10000.txt"
         toDict = map toDictEntry
         toDictEntry word = (word, wordLetters word)
+
