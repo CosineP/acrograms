@@ -6,6 +6,6 @@ import           System.Environment (getArgs)
 main :: IO ()
 main = do
   dict <- readDict
-  [input] <- getArgs
-  mapM_ putStrLn $ anagrams dict input "owifea"
+  [abbr, input] <- getArgs
+  mapM_ putStrLn $ anagrams dict input abbr
 
