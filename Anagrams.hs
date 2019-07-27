@@ -61,6 +61,9 @@ expand acronym state@(wordsSoFar, remaining, dict)
     -- usableWords can be used in this spot in the acronym
     -- combining the two would lead to the first letter of the acronym
     -- stripping all non-acronymous words
+    -- We filter ALL remaining words, even if it's not just this letter,
+    -- because IIRC it ended up being faster this way. at present moment i
+    -- don't understand how that's possible, but that's what i remember
     possibleWords = map (filter (canSpell remaining)) dict
     -- THIS ONLY WORKS WHEN THE ACRONYM DOESN'T CONTAIN DUPLICATES
     -- For my pet use case that works but TODO: check for that
@@ -101,9 +104,9 @@ readDict = toDict . (filter goodWord . lines) <$> readFile dictionary
       | length rest > 0 = True
       | otherwise = False
     goodWord [] = False
-    -- Bill Wurtz told us it contains "of", meaning the o IS of
-    -- TODO: in general case, remove this
-    certain = ["of"]
+    -- This is words we start with (that we were told is in the acronym)
+    -- in wfaoie, Bill Wurtz told us it contains "of", meaning the o IS of
+    certain = []
     -- Adding a few certains of early words can make a fast but
     -- realistic profile case
     --certain = ["of", "whore", "into", "intake"]
@@ -119,11 +122,16 @@ readDict = toDict . (filter goodWord . lines) <$> readFile dictionary
 splitDict :: String -> DictLetter -> Dictionary
 splitDict acronym partial = ordered
   where
-    narrow = filter (\word -> any (`fitsAcronym` word) acronym) partial
-    project :: DictEntry -> Char
-    project = head . fst
+    -- These are dict entries that start with ANY letter in the acronym
+    -- Don't remember if this makes groupWith not break or if it's perf
+    narrowed = filter (\word -> any (`fitsAcronym` word) acronym) partial
+    firstLetter :: DictEntry -> Char
+    firstLetter = head . fst
     grouped :: Dictionary
-    grouped = groupWith project narrow
+    grouped = groupWith firstLetter narrowed
+    -- Why bother maintaining order? There is a BUNCH of optimisation to be
+    -- made by processing less common words later
+    -- TODO: automate the above
     ordered :: Dictionary
     ordered = foldl orderFunc [] grouped
     orderFunc :: Dictionary -> DictLetter -> Dictionary
