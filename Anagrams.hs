@@ -120,24 +120,7 @@ readDict = toDict . (filter goodWord . lines) <$> readFile dictionary
     toDictEntry word = (word, wordLetters word)
 
 splitDict :: String -> DictLetter -> Dictionary
-splitDict acronym partial = ordered
+splitDict acronym partial = map allStartsWith acronym
   where
-    -- These are dict entries that start with ANY letter in the acronym
-    -- Don't remember if this makes groupWith not break or if it's perf
-    narrowed = filter (\word -> any (`fitsAcronym` word) acronym) partial
-    firstLetter :: DictEntry -> Char
-    firstLetter = head . fst
-    grouped :: Dictionary
-    grouped = groupWith firstLetter narrowed
-    -- Why bother maintaining order? There is a BUNCH of optimisation to be
-    -- made by processing less common words later
-    -- TODO: automate the above
-    ordered :: Dictionary
-    ordered = foldl orderFunc [] grouped
-    orderFunc :: Dictionary -> DictLetter -> Dictionary
-    orderFunc acc group = insertBy acronymOrder group acc
-    acronymOrder :: DictLetter -> DictLetter -> Ordering
-    acronymOrder (((letterA:_), _):_) (((letterB:_), _):_) =
-      compare (elemIndex letterA acronym) (elemIndex letterB acronym)
-    acronymOrder _ _ = EQ
+    allStartsWith letter = filter (fitsAcronym letter) partial
 
