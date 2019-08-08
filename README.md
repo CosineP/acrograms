@@ -15,7 +15,7 @@ real example, from bill wurtz, and that is from where this program originates
 
 ## usage
 
-    cabal run "wfaoie" "drunk video: if i'm in Greenland, i follow UFOs to Antarctica"
+    cabal run "wfaoie" "drunk video: if i'm in Greenland, i follow UFOs to Antarctica" +RTS -N
 
 also take a look at `readDict`, where there are some compile-time options
 to consider such as:
